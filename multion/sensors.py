@@ -856,7 +856,8 @@ class OracleMapSizeSensor(Sensor):
             
         return np.array([np.array(top_down_map.shape), [lower_bound[2], lower_bound[0]], [upper_bound[2], upper_bound[0]]])
 
-@registry.register_sensor(name="PointGoalWithGPSCompassSensor")
+# NOTE: Comment out for ObjNav experiments
+# @registry.register_sensor(name="PointGoalWithGPSCompassSensor")
 class IntegratedPointGoalGPSAndCompassSensor(PointGoalSensor):
     r"""Sensor that integrates PointGoals observations (which are used PointGoal Navigation) and GPS+Compass.
 
@@ -894,3 +895,93 @@ class IntegratedPointGoalGPSAndCompassSensor(PointGoalSensor):
         return self._compute_pointgoal(
             agent_position, rotation_world_agent, goal_position
         )
+
+
+@registry.register_sensor
+class SemanticCategorySensor(Sensor):
+    r"""A sensor for converting instance IDs present in the raw semantic sensor observations
+    to the corresponding category IDs for HM3D ObjectNav task.
+    Args:
+        
+    """
+    cls_uuid: str = "semantic_categories"
+    semantic_sensor_uuid: str = "semantic"
+
+    def __init__(
+        self,
+        sim,
+        *args: Any,
+        config: "DictConfig",
+        **kwargs: Any,
+    ):  
+
+        self._config = config
+        self._sim = sim
+        self.resolution = (
+            sim.agents[0]
+            ._sensors[self.semantic_sensor_uuid]
+            .specification()
+            .resolution
+        )
+
+        self.hm3d_goal_id_to_catgeory = {
+            "chair": 0 + 1,
+            "bed": 1 + 1,
+            "plant": 2 + 1,
+            "toilet": 3 + 1,
+            "tv_monitor": 4 + 1,
+            "sofa": 5 + 1,
+        }       # Add 1 to prevent matching 0 with 0 entries in semantic grid map
+
+        super().__init__(config=config)
+
+    def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
+        return self.cls_uuid
+
+    def _get_sensor_type(self, *args: Any, **kwargs: Any):
+        return SensorTypes.SEMANTIC
+
+    def _get_observation_space(self, *args: Any, **kwargs: Any):
+        return spaces.Box(
+            shape=(
+                self.resolution[0],
+                self.resolution[1],
+                1,
+            ),
+            low=np.iinfo(np.uint32).min,
+            high=np.iinfo(np.uint32).max,
+            dtype=np.int32,
+        )
+
+    def get_observation(
+        self,
+        observations,
+        *args: Any,
+        episode: Any,
+        **kwargs: Any,
+    ) -> Optional[int]:
+
+        assert (
+            'semantic' in observations
+        ), "Agent not equipped with semantic sensor -> InstanceIDtoCategoryID Sensor failed !"
+
+        # Create instance ID to category ID mapping for the current scene
+        self.scene = self._sim.semantic_annotations()
+        instance_id_to_label_id = {}
+
+        for obj in self.scene.objects:
+            if obj.category.name() in list(self.hm3d_goal_id_to_catgeory.keys()):
+                instance_id_to_label_id[int(obj.id.split("_")[-1])] = self.hm3d_goal_id_to_catgeory[obj.category.name()]
+            else:
+                instance_id_to_label_id[int(obj.id.split("_")[-1])] = 111            # If object is not in HM3D goal categories, then set label to 111 -> Setting greater than 255 creates issues in the semantic occ_grid map
+
+        self.mapping = np.array([ instance_id_to_label_id[i] for i in range(len(instance_id_to_label_id)) ])
+
+        assert self.mapping.shape[0] != 0
+        
+        if self.mapping.shape[0] < np.max(observations['semantic']):
+            print(">>> Error ....")
+            print(instance_id_to_label_id.keys())
+            print(instance_id_to_label_id.values())
+        
+        return np.take(self.mapping, observations['semantic'])

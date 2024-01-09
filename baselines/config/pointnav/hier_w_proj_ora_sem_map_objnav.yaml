@@ -1,20 +1,20 @@
 VERBOSE: False
-BASE_TASK_CONFIG_PATH: "multion/config/tasks/pointnav_hm3d_w_pmap_real.yaml"
-TRAINER_NAME: "semmapon_real"
-ENV_NAME: "NavRLEnv"
+BASE_TASK_CONFIG_PATH: "/srv/kira-lab/share4/yali30/mopa_multion/mopa/multion/config/tasks/objectnav_hm3d_mopa.yaml"
+TRAINER_NAME: "semmapon_objnav"
+ENV_NAME: "NavRLEnv"    # NOTE: change env.step() function appropriately for ObjNav experiments
 SIMULATOR_GPU_ID: 0
 TORCH_GPU_ID: 0
 VIDEO_OPTION: []
-TENSORBOARD_DIR: "experiments/pointnav/hm3d-depth/hierarchical/3on/Nat/test/eval_hm3d_tb"
-RESULTS_DIR: "experiments/pointnav/hm3d-depth/hierarchical/3on/Nat/test/results"
-VIDEO_DIR: "experiments/pointnav/hm3d-depth/hierarchical/3on/Nat/test/video_dir"
+TENSORBOARD_DIR: "exp_reproduce/objnav_slide_stubborn/hm3d-depth/hierarchical/hm3d_v1/eval_hm3d_tb"
+RESULTS_DIR: "exp_reproduce/objnav_slide_stubborn/hm3d-depth/hierarchical/hm3d_v1/results"
+VIDEO_DIR: "exp_reproduce/objnav_slide_stubborn/hm3d-depth/hierarchical/hm3d_v1/video_dir"
 VIDEO_RENDER_ALL_INFO: True
 TEST_EPISODE_COUNT: -1
 EVAL_CKPT_PATH_DIR: "/srv/kira-lab/share4/yali30/mopa_multion/mopa/data/pointnav_checkpoints/hm3d-depth/ckpt.60.pth"
-NUM_ENVIRONMENTS: 4
+NUM_ENVIRONMENTS: 20
 SENSORS: ["RGB_SENSOR", "DEPTH_SENSOR", "SEMANTIC_SENSOR"]
-CHECKPOINT_FOLDER: "experiments/pointnav/hm3d-depth/hierarchical/3on/Nat/test/checkpoints"
-LOG_FILE: "experiments/pointnav/hm3d-depth/hierarchical/3on/Nat/test/eval_hm3d.log"
+CHECKPOINT_FOLDER: "exp_reproduce/objnav_slide_stubborn/hm3d-depth/hierarchical/hm3d_v1/checkpoints"
+LOG_FILE: "exp_reproduce/objnav_slide_stubborn/hm3d-depth/hierarchical/hm3d_v1/eval_hm3d.log"
 NUM_UPDATES: -1
 TOTAL_NUM_STEPS: 2.5e9
 LOG_INTERVAL: 10
@@ -30,6 +30,13 @@ EVAL:
 
 RL:
   SUCCESS_REWARD: 2.5
+
+  # Hardcode some RL config params which are specific to the MON task
+  REWARD_MEASURE: 'distance_to_goal'
+  REWARD_MEASURE_MULTI_GOAL: 'distance_to_goal'
+  SUCCESS_REWARD_MEASURE: 'spl'
+  SUBSUCCESS_MEASURE: 'distance_to_goal'
+  SUBSUCCESS_REWARD_MEASURE: 'spl' 
 
   SEM_MAP_POLICY:
     use_oracle_map: False
@@ -49,7 +56,7 @@ RL:
     
   POLICY:
     name: "PointNavResNetPolicy"
-    EXPLORATION_STRATEGY: "random"  # can be one of ["random", "stubborn"]
+    EXPLORATION_STRATEGY: "stubborn"  # can be one of ["random", "stubborn"]
     EXPLORE_RADIUS: 50
     MAX_STEPS_BEFORE_GOAL_SELECTION: 50
     global_map_size: 250

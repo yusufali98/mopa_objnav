@@ -18,8 +18,11 @@ from baselines.rl.ppo.ppo_trainer_ora_map_w_path_planner import MapWithPathPlann
 from baselines.rl.ppo.ppo_trainer_ora_map_w_fast_marching import MapWithFMMOnTrainer
 from baselines.rl.ppo.ppo_trainer_sem_map_shortest_pp import ShortestPathPlannerTrainer
 from baselines.rl.ppo.ppo_trainer_sem_map_shortest_pp_map import ShortestPathPlannerMapTrainer
-from baselines.rl.ppo.ppo_trainer_pred_sem_map_rednet import PredSemMapRedNetOnTrainer
+# from baselines.rl.ppo.ppo_trainer_pred_sem_map_rednet import PredSemMapRedNetOnTrainer
 from baselines.rl.ppo.ppo_trainer_sem_map_frontier import SemMapOnFrontierTrainer
+
+from baselines.rl.ppo.ppo_trainer_sem_map_objnav import SemMapObjNavTrainer
+
 from baselines.config.default import get_config
 from baselines.nonlearning_agents import (
     evaluate_agent,
@@ -84,6 +87,8 @@ def run_exp(exp_config: str, run_type: str, opts=None) -> None:
     
     assert trainer_init is not None, f"{config.TRAINER_NAME} is not supported"
     trainer = trainer_init(config)
+
+    print(config)
 
     if run_type == "train":
         trainer.train()

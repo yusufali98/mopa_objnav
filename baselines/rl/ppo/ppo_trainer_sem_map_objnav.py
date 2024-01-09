@@ -81,9 +81,9 @@ import baselines.common.rotation_utils as ru
 #import baselines.common.fog_of_war as fog_of_war
 #from baselines.common.object_detector_cyl import ObjectDetector
 
-@baseline_registry.register_trainer(name="semmapon_real")
-class SemMapOnRealTrainer(BaseRLTrainer):
-    r"""Trainer class for semantic map of Real/Nat objects
+@baseline_registry.register_trainer(name="semmapon_objnav")
+class SemMapObjNavTrainer(BaseRLTrainer):
+    r"""Trainer class for predicted semantic map
     """
     supported_tasks = ["Nav-v0"]
 
@@ -1149,7 +1149,7 @@ class SemMapOnRealTrainer(BaseRLTrainer):
         #   [elevation+slice_range_below, elevation+slice_range_above]
         self.slice_range_below = -1 # Should be 0 or negative
         self.slice_range_above = 10.5 # Should be 0 or positive
-        self.z_bins = [0.1, 1.5]
+        self.z_bins = [0.5, 1.5]
         
         ##
         
@@ -1189,10 +1189,7 @@ class SemMapOnRealTrainer(BaseRLTrainer):
         os.makedirs(results_dir, exist_ok=True)
         _creation_timestamp = str(time.time())
         with open(os.path.join(results_dir, f"stats_all_{_creation_timestamp}.csv"), 'a') as f:
-            csv_header = ["episode_id","reward","total_area","covered_area",
-                          "covered_area_ratio","episode_length","distance_to_currgoal",
-                          "distance_to_multi_goal","sub_success","success","mspl",
-                          "progress","pspl"]
+            csv_header = ["episode_id","episode_length","success","spl","softspl"]
             _csv_writer = csv.writer(f)
             _csv_writer.writerow(csv_header)
 
@@ -1217,22 +1214,27 @@ class SemMapOnRealTrainer(BaseRLTrainer):
 
         pbar = tqdm.tqdm(total=number_of_eval_episodes)
         self.actor_critic.eval()
+
+        num_steps = 0
+
         while (
             len(stats_episodes) < number_of_eval_episodes
             and self.envs.num_envs > 0
         ):
+            
+            num_steps += 1
+
             current_episodes = self.envs.current_episodes()
             
-            next_goal_category = batch['multiobjectgoal']
-
-            for sem_reading in torch.unique(batch['semantic']).tolist():
-                if sem_reading not in [0,1,2,3,4,5,6,7,8]:
-                    print("FOUND INVALID SEM READING") 
+            # goals_hm3d = []
+            # for ep in current_episodes:
+            #     goals_hm3d.append(ep.object_category)
+            # print("Goals: ", goals_hm3d, " \n")
+            
+            next_goal_category = batch['objectgoal'] + 1        # Need to add 1 to prevent matching with 0 entries in semantic grid map
             
             # 1) Get map with all objects
             self.object_maps, agent_locs = self.build_map(batch, self.object_maps, self.grid_map)
-            self.gt_maps = batch['object_map'][:,:,:,0]
-            self.gt_maps[self.gt_maps > 0] = 1.
                 
             for i in range(self.envs.num_envs):
                 # visited for coverage
@@ -1328,6 +1330,8 @@ class SemMapOnRealTrainer(BaseRLTrainer):
                     # 3) Convert map position to world position in 3D
                     _locs = self.from_grid(goal_grid_loc[0].item(), goal_grid_loc[1].item())
                     if self.config.RL.SEM_MAP_POLICY.use_world_loc:
+                        #_agent_world_pos = batch[i]["agent_position"].cpu().numpy()
+                        #goal_world_coordinates[i] = torch.from_numpy(np.stack([_locs[1], _agent_world_pos[1], -_locs[0]], axis=-1))
                         goal_world_coordinates[i] = torch.from_numpy(np.stack([_locs[1], np.zeros_like(_locs[0]), -_locs[0]], axis=-1))
                     else:
                         goal_world_coordinates[i] = torch.stack([_locs[0], _locs[1]], axis=-1)
@@ -1360,7 +1364,7 @@ class SemMapOnRealTrainer(BaseRLTrainer):
                     
                 else:
                     agent_position = batch[i]["episodic_gps"]
-                    agent_rotation = batch[i]["episodic_rotation"]  # quaternion version of episodic_compass
+                    agent_rotation = batch[i]["episodic_compass"]  # quaternion version of episodic_compass
                     goal_observations[i] = torch.tensor(multion_maps.compute_pointgoal(
                                             agent_position.cpu().numpy(), 
                                             agent_rotation.cpu().numpy(), 
@@ -1383,6 +1387,11 @@ class SemMapOnRealTrainer(BaseRLTrainer):
                 )
 
                 prev_actions.copy_(actions)  # type: ignore
+
+                # NOTE: Heuristic to invoke STOP action BASED ON DISTANCE TO GOAL for pre-trained PointNav agent
+                stop_idxs = torch.logical_and(goal_observations[:,0] < 0.5, is_goal[:,0] == 1)
+                actions[stop_idxs] = 0
+
             # NB: Move actions to CPU.  If CUDA tensors are
             # sent in to env.step(), that will create CUDA contexts
             # in the subprocesses.
@@ -1391,6 +1400,8 @@ class SemMapOnRealTrainer(BaseRLTrainer):
             step_data = [{"action": a.item(), "action_args": {"is_goal": is_goal[i].item()}} for i,a in enumerate(actions.to(device="cpu"))]
 
             outputs = self.envs.step(step_data)
+
+            # print("Num steps: ", num_steps, "      current action: ", actions)
 
             observations, rewards_l, dones, infos = [
                 list(x) for x in zip(*outputs)
@@ -1429,13 +1440,9 @@ class SemMapOnRealTrainer(BaseRLTrainer):
                         "reward": current_episode_reward[i].item()
                     }
                     
-                    total_area = self.gt_maps[i,:,:].sum()
                     cov_area = self.object_maps[i,:,:,0].sum()
-                    coverage_ratio = cov_area / self.gt_maps[i,:,:].sum()
                     episode_stats.update({
-                        "total_area": total_area.item(),
                         "covered_area": cov_area.item(),
-                        "covered_area_ratio": coverage_ratio.item()
                     })
                     
                     episode_stats.update(
@@ -1449,40 +1456,6 @@ class SemMapOnRealTrainer(BaseRLTrainer):
                             current_episodes[i].episode_id,
                         )
                     ] = episode_stats
-
-                    if len(self.config.VIDEO_OPTION) > 0:
-                        frame = observations_to_image(
-                                observation=batch[i], info=infos[i], action=actions[i].cpu().numpy(),
-                                object_map=self.object_maps[i], 
-                                #semantic_projections=(self.map > 0), #projection[i], 
-                                #global_object_map=global_object_map[i], 
-                                #agent_view=agent_view[i],
-                                config=self.config
-                        )
-                        if self.config.VIDEO_RENDER_ALL_INFO:
-                            _m = self._extract_scalars_from_info(infos[i])
-                            _m["reward"] = current_episode_reward[i].item()
-                            _m["next_goal"] = multion_maps.MULTION_REAL_OBJECT_MAP[next_goal_category[i].item()]
-                            if self.config.RL.POLICY.EXPLORATION_STRATEGY == "stubborn":
-                                _m["collision_count"] = collision_threshold_steps[i].item()
-                            _m["coverage_ratio"] = coverage_ratio
-                            frame = overlay_frame(frame, _m)
-
-                        rgb_frames[i].append(frame)
-                        
-                        generate_video(
-                            video_option=self.config.VIDEO_OPTION,
-                            video_dir=self.config.VIDEO_DIR,
-                            images=rgb_frames[i],
-                            episode_id=os.path.basename(current_episodes[i].scene_id) + '_' + current_episodes[i].episode_id,
-                            checkpoint_idx=checkpoint_index,
-                            metrics=self._extract_scalars_from_info(infos[i]),
-                            fps=self.config.VIDEO_FPS,
-                            tb_writer=writer,
-                            keys_to_include_in_name=self.config.EVAL_KEYS_TO_INCLUDE_IN_NAME,
-                        )
-
-                        rgb_frames[i] = []
                     
                     global_object_map[i] = torch.zeros(
                         self.config.RL.SEM_MAP_POLICY.global_map_size,
@@ -1537,40 +1510,18 @@ class SemMapOnRealTrainer(BaseRLTrainer):
                         row_item = []
                         row_item.append(current_episodes[i].scene_id + "_" + current_episodes[i].episode_id)
                         for k,v in episode_stats.items():
-                            row_item.append(v)
+                            if k in ["episode_id","episode_length","success","spl","softspl"]:
+                                row_item.append(v)
                         _csv_writer.writerow(row_item)
 
                 # episode continues
                 else:
-                    if len(self.config.VIDEO_OPTION) > 0:
-                        frame = observations_to_image(
-                                observation=observations[i], info=infos[i], action=actions[i].cpu().numpy(),
-                                object_map=self.object_maps[i], 
-                                #semantic_projections=(self.map > 0), #projection[i], 
-                                #global_object_map=global_object_map[i], 
-                                #agent_view=agent_view[i],
-                                config=self.config
-                        )
-                        if self.config.VIDEO_RENDER_ALL_INFO:
-                            _m = self._extract_scalars_from_info(infos[i])
-                            _m["reward"] = current_episode_reward[i].item()
-                            _m["next_goal"] = multion_maps.MULTION_REAL_OBJECT_MAP[next_goal_category[i].item()]
-                            if self.config.RL.POLICY.EXPLORATION_STRATEGY == "stubborn":
-                                _m["collision_count"] = collision_threshold_steps[i].item()
-                            _m["total_area"] = self.gt_maps[i,:,:].sum()
-                            cov_area = self.object_maps[i,:,:,0].sum() #self.visited[i,:,:].sum()
-                            _m["visited_area"] = cov_area
-                            _m["coverage_ratio"] = cov_area / self.gt_maps[i,:,:].sum()
-                            frame = overlay_frame(frame, _m)
-
-                        rgb_frames[i].append(frame)
-
                     if self.config.RL.POLICY.EXPLORATION_STRATEGY == "stubborn" and infos[i]["collisions"]["is_collision"]:
                         collision_threshold_steps[i] += 1
                     else:
                         collision_threshold_steps[i] = 0
 
-                    if ((actions[i].item() == 0 and infos[i]["sub_success"] == 1) or
+                    if ((actions[i].item() == 0 and infos[i]["success"] == 1) or
                             is_goal[i] == 0 and (
                             ((self.config.RL.POLICY.EXPLORATION_STRATEGY == "" or self.config.RL.POLICY.EXPLORATION_STRATEGY == "random") 
                                 and steps_towards_short_term_goal[i].item() >= self.config.RL.POLICY.MAX_STEPS_BEFORE_GOAL_SELECTION) or
@@ -1652,7 +1603,8 @@ class SemMapOnRealTrainer(BaseRLTrainer):
         depth[depth == 0] = np.NaN
         #depth[depth > 10] = np.NaN
 
-        semantic = observations['semantic'].cpu().numpy()
+        # semantic = observations['semantic'].cpu().numpy()
+        semantic = observations['semantic_categories'].cpu().numpy()
         theta = observations['episodic_compass'].cpu().numpy()
         location = observations["episodic_gps"].cpu().numpy()
         
@@ -1684,7 +1636,7 @@ class SemMapOnRealTrainer(BaseRLTrainer):
             self.map_resolution,
             self.map_center)
 
-        map = grid_map[:, :, :, 0] + depth_counts[:, :, :, 1]
+        map = grid_map[:, :, :, 0] + depth_counts[:, :, :, 1]       # z_bins=[0.1,1.5] and we count only the points which are between 0.5 and 1.5 m
         map[map < 1] = 0.0
         map[map >= 1] = 1.0
         grid_map[:, :, :, 0] = map

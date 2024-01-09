@@ -192,3 +192,8 @@ tb/
 train.log
 cpt/
 exp/
+debug/
+exp_reproduce/
+experiments/
+experiments_reproduce_3ON/
+slurm_logs/

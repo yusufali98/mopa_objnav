@@ -282,18 +282,20 @@ class PointNavResNetNet(Net):
             )
             self.tgt_embeding = nn.Linear(n_input_goal, 32)
             rnn_input_size += 32
-
-        if ObjectGoalSensor.cls_uuid in observation_space.spaces:
-            self._n_object_categories = (
-                int(
-                    observation_space.spaces[ObjectGoalSensor.cls_uuid].high[0]
-                )
-                + 1
-            )
-            self.obj_categories_embedding = nn.Embedding(
-                self._n_object_categories, 32
-            )
-            rnn_input_size += 32
+        
+        print("HARDCODE: Skipping Objectgoal sensor to prevent including in depth-only PointNav agent input")
+        # NOTE: Skip objectgoal sensor inputs to the depth-only pointnav agent
+        # if ObjectGoalSensor.cls_uuid in observation_space.spaces:
+        #     self._n_object_categories = (
+        #         int(
+        #             observation_space.spaces[ObjectGoalSensor.cls_uuid].high[0]
+        #         )
+        #         + 1
+        #     )
+        #     self.obj_categories_embedding = nn.Embedding(
+        #         self._n_object_categories, 32
+        #     )
+        #     rnn_input_size += 32
 
         if EpisodicGPSSensor.cls_uuid in observation_space.spaces:
             input_gps_dim = observation_space.spaces[

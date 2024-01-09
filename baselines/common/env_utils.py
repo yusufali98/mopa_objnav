@@ -30,7 +30,7 @@ def make_env_fn(
     if "TASK_CONFIG" in config:
         config = config.TASK_CONFIG
     dataset = make_dataset(config.DATASET.TYPE, config=config.DATASET)
-    env = env_class(config=_config, dataset=dataset)
+    env = env_class(config=_config.TASK_CONFIG, dataset=dataset)
     env.seed(config.SEED)
     return env
 

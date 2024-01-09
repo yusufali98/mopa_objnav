@@ -18,7 +18,8 @@ from habitat.core.utils import try_cv2_import
 
 cv2 = try_cv2_import()
 
-@registry.register_measure
+# NOTE: Comment out for ObjNav experiments
+# @registry.register_measure
 class Success(Measure):
     r"""Whether or not the agent succeeded at its task.
     """

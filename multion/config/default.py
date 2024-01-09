@@ -211,7 +211,7 @@ _C.TASK.OBJECT_MAP_SENSOR.num_samples = 50
 _C.TASK.OBJECT_MAP_SENSOR.nav_threshold = 0.3
 _C.TASK.OBJECT_MAP_SENSOR.MAP_CHANNELS = 3
 _C.TASK.OBJECT_MAP_SENSOR.draw_border = False
-_C.TASK.OBJECT_MAP_SENSOR.with_sampling = True
+_C.TASK.OBJECT_MAP_SENSOR.with_sampling = False
 _C.TASK.OBJECT_MAP_SENSOR.mask_map = False
 _C.TASK.OBJECT_MAP_SENSOR.cache_max_size = 2
 _C.TASK.OBJECT_MAP_SENSOR.map_size = 50
@@ -232,6 +232,12 @@ _C.TASK.ORACLE_MAP_SIZE_SENSOR.draw_border = _C.TASK.OBJECT_MAP_SENSOR.draw_bord
 _C.TASK.ORACLE_MAP_SIZE_SENSOR.with_sampling = _C.TASK.OBJECT_MAP_SENSOR.with_sampling
 _C.TASK.ORACLE_MAP_SIZE_SENSOR.cache_max_size = 2
 # -----------------------------------------------------------------------------
+# Semantic Category SENSOR
+# -----------------------------------------------------------------------------
+_C.TASK.SEMANTIC_CATEGORY_SENSOR = CN()
+_C.TASK.SEMANTIC_CATEGORY_SENSOR.TYPE = "SemanticCategorySensor"
+# -----------------------------------------------------------------------------
+
 # SUCCESS MEASUREMENT
 # -----------------------------------------------------------------------------
 _C.TASK.SUCCESS = CN()

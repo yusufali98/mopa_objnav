@@ -30,8 +30,8 @@ def get_env_class(env_name: str) -> Type[habitat.RLEnv]:
     """
     return baseline_registry.get_env(env_name)
 
-@baseline_registry.register_env(name="NavRLEnv")
-@baseline_registry.register_env(name="MultiObjNavRLEnv")
+# @baseline_registry.register_env(name="NavRLEnv")
+# @baseline_registry.register_env(name="MultiObjNavRLEnv")
 class MultiObjNavRLEnv(habitat.RLEnv):
     def __init__(self, config: Config, dataset: Optional[Dataset] = None):
         self._rl_config = config.RL
@@ -72,6 +72,8 @@ class MultiObjNavRLEnv(habitat.RLEnv):
         return observations
 
     def step(self, action: Union[int, str, Dict[str, Any]], **kwargs):
+
+        # NOTE: Comment out for ObjNav experiments to use default habitat NavRLENv
         is_goal = True
         if "action_args" in kwargs and "is_goal" in kwargs["action_args"]:
             is_goal = kwargs["action_args"]["is_goal"]
@@ -126,8 +128,14 @@ class MultiObjNavRLEnv(habitat.RLEnv):
         #self._env._update_step_stats()       
         return observations, reward, done, info
 
-    
-
+        '''
+        observations = self._env.step(action, **kwargs)
+        reward = self.get_reward(observations, **kwargs)
+        done = self.get_done(observations)
+        info = self.get_info(observations)
+        return observations, reward, done, info
+        '''
+        
     def get_reward_range(self):
         return (
             self._rl_config.SLACK_REWARD - 1.0,
@@ -187,15 +195,16 @@ class MultiObjNavRLEnv(habitat.RLEnv):
                 )
                 
             reward = self._rl_config.SLACK_REWARD
-            logger.info(f"Slack={reward}")
+            # logger.info(f"Slack={reward}")
 
             current_measure = self._env.get_metrics()[self._reward_measure_name]
-
+            
+            # NOTE: Dont execute the if block for ObjNav experiments
             if self._episode_subsuccess():
                 current_measure = self._env.task.foundDistance
 
             reward += self._previous_measure - current_measure
-            logger.info(f"Distance reward={self._previous_measure - current_measure}")
+            # logger.info(f"Distance reward={self._previous_measure - current_measure}")
             self._previous_measure = current_measure
 
             if self._episode_subsuccess():
@@ -205,10 +214,12 @@ class MultiObjNavRLEnv(habitat.RLEnv):
                 reward += self._rl_config.SUCCESS_REWARD
             if self._episode_subsuccess():
                 reward += self._rl_config.SUBSUCCESS_REWARD
+
+            # NOTE: Dont execute the if block for ObjNav experiments
             if self._env.task.is_found_called and self._rl_config.FALSE_FOUND_PENALTY:
                 reward -= self._rl_config.FALSE_FOUND_PENALTY_VALUE
                 logger.info(f"False Found=-{self._rl_config.FALSE_FOUND_PENALTY_VALUE}")
-
+            
         return reward
     
     def _episode_success(self):
