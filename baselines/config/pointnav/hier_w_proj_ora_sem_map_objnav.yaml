@@ -1,7 +1,7 @@
 VERBOSE: False
 BASE_TASK_CONFIG_PATH: "/srv/kira-lab/share4/yali30/mopa_multion/mopa/multion/config/tasks/objectnav_hm3d_mopa.yaml"
 TRAINER_NAME: "semmapon_objnav"
-ENV_NAME: "NavRLEnv"    # NOTE: change env.step() function appropriately for ObjNav experiments
+ENV_NAME: "NavRLEnv"    # NOTE: comment habitat registry decorator in baselines/common/environments.py to prevent MultiObjNavRLEnv to be registered as "NavRLEnv"
 SIMULATOR_GPU_ID: 0
 TORCH_GPU_ID: 0
 VIDEO_OPTION: []
@@ -30,13 +30,6 @@ EVAL:
 
 RL:
   SUCCESS_REWARD: 2.5
-
-  # Hardcode some RL config params which are specific to the MON task
-  REWARD_MEASURE: 'distance_to_goal'
-  REWARD_MEASURE_MULTI_GOAL: 'distance_to_goal'
-  SUCCESS_REWARD_MEASURE: 'spl'
-  SUBSUCCESS_MEASURE: 'distance_to_goal'
-  SUBSUCCESS_REWARD_MEASURE: 'spl' 
 
   SEM_MAP_POLICY:
     use_oracle_map: False

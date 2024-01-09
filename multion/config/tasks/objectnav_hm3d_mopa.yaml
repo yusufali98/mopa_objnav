@@ -37,7 +37,7 @@ TASK:
 
   SENSORS: ['OBJECTGOAL_SENSOR', 'COMPASS_SENSOR', 'GPS_SENSOR',
             'POSITION_SENSOR', 'ROTATION_SENSOR',   # NOTE: Added in addition to the original HM3D sensors
-            'POINTGOAL_WITH_GPS_COMPASS_SENSOR',    # NOTE: pointgoal_with_gps readings from simulator are NOT ACTUALLY used but required for setting up pointnav policy input + comment out the MON custom sensor
+            'POINTGOAL_WITH_GPS_COMPASS_SENSOR',    # NOTE: pointgoal_with_gps readings from simulator are NOT ACTUALLY used but required for setting up pointnav policy input + comment out the MON custom POINTGOAL_WITH_GPS_COMPASS_SENSOR in multion/sensors.py
             'SEMANTIC_CATEGORY_SENSOR']    
   GOAL_SENSOR_UUID: objectgoal
 
@@ -45,7 +45,7 @@ TASK:
     GOAL_FORMAT: "POLAR"
     DIMENSIONALITY: 2
 
-  # NOTE: Comment out MON custom success metric when running ObjNav experiments as "SUCCESS" will point to custom MON success metric
+  # NOTE: Comment out MON custom success metric in multion/measures.py when running ObjNav experiments as "SUCCESS" will point to custom MON success metric
   MEASUREMENTS: ['DISTANCE_TO_GOAL', 'SUCCESS', 'SPL', 'SOFT_SPL']
 
   DISTANCE_TO_GOAL:
