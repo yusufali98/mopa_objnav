@@ -1149,7 +1149,9 @@ class SemMapObjNavTrainer(BaseRLTrainer):
         #   [elevation+slice_range_below, elevation+slice_range_above]
         self.slice_range_below = -1 # Should be 0 or negative
         self.slice_range_above = 10.5 # Should be 0 or positive
-        self.z_bins = [0.5, 1.5]
+        self.z_bins = [0.5, 1.2]
+
+        print("Z-BINS: ", self.z_bins)
         
         ##
         
@@ -1370,7 +1372,15 @@ class SemMapObjNavTrainer(BaseRLTrainer):
                                             agent_rotation.cpu().numpy(), 
                                             goal_world_coordinates[i].cpu().numpy()), device=self.device)
                 
-                # 5) Move to the goal
+            # 5) Move to the goal
+
+            # Reshape depth observation to match the pretraiend pointnav depth input
+            batch['depth'] = batch['depth'].permute(0, 3, 1, 2)
+            batch['depth'] = torch.nn.functional.interpolate(batch['depth'].float(),
+                                                          size=config.RL.POLICY['pretrained_pointnav_depth_resolution'],
+                                                          mode="area").to(dtype=batch['depth'].dtype)
+            batch['depth'] = batch['depth'].permute(0, 2, 3, 1)
+
             with torch.no_grad():
                 (
                     _,

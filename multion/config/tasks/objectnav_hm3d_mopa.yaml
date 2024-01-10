@@ -11,23 +11,23 @@ SIMULATOR:
     RADIUS: 0.18
   HABITAT_SIM_V0:
     GPU_DEVICE_ID: 0
-    ALLOW_SLIDING: True
-    PHYSICS_CONFIG_FILE: "data/default_real.phys_scene_config.json"
+    ALLOW_SLIDING: False
+    # PHYSICS_CONFIG_FILE: "data/default_real.phys_scene_config.json"
 
   # NOTE: Original HM3D Config has 480 x 640 resolution but we are chaning as pointnav policy accept 256 x 256 
   SEMANTIC_SENSOR:
-    WIDTH: 256
-    HEIGHT: 256
+    WIDTH: 640
+    HEIGHT: 480
     HFOV: 79
     POSITION: [0, 0.88, 0]
   RGB_SENSOR:
-    WIDTH: 256
-    HEIGHT: 256
+    WIDTH: 640
+    HEIGHT: 480
     HFOV: 79
     POSITION: [0, 0.88, 0]
   DEPTH_SENSOR:
-    WIDTH: 256
-    HEIGHT: 256
+    WIDTH: 640
+    HEIGHT: 480
     HFOV: 79
     POSITION: [0, 0.88, 0]
 

@@ -67,6 +67,15 @@ class PointNavResNetPolicy(HierNetPolicy):
 
         if "has_rgb" in policy_config and policy_config.has_rgb:
             del observation_space.spaces['rgb']
+        
+        # Update depth input resolution for pretrained pointnav input
+        if "pretrained_pointnav_depth_resolution" in policy_config:
+            from gym.spaces.box import Box
+            resolution = policy_config['pretrained_pointnav_depth_resolution']
+            observation_space.spaces['depth'] = Box(low=0,
+                                                    high=1.,
+                                                    shape=(resolution,resolution,1),
+                                                    dtype=np.float32)
 
         super().__init__(
             PointNavResNetNet(

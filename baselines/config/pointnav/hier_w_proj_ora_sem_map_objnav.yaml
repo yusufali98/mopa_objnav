@@ -5,16 +5,16 @@ ENV_NAME: "NavRLEnv"    # NOTE: comment habitat registry decorator in baselines/
 SIMULATOR_GPU_ID: 0
 TORCH_GPU_ID: 0
 VIDEO_OPTION: []
-TENSORBOARD_DIR: "exp_reproduce/objnav_slide_stubborn/hm3d-depth/hierarchical/hm3d_v1/eval_hm3d_tb"
-RESULTS_DIR: "exp_reproduce/objnav_slide_stubborn/hm3d-depth/hierarchical/hm3d_v1/results"
-VIDEO_DIR: "exp_reproduce/objnav_slide_stubborn/hm3d-depth/hierarchical/hm3d_v1/video_dir"
+TENSORBOARD_DIR: "exp_reproduce/objnav_no_slide_random_hm3d_orig_res_default_physx_z_1.2/hm3d-depth/hierarchical/hm3d_v1/eval_hm3d_tb"
+RESULTS_DIR: "exp_reproduce/objnav_no_slide_random_hm3d_orig_res_default_physx_z_1.2/hm3d-depth/hierarchical/hm3d_v1/results"
+VIDEO_DIR: "exp_reproduce/objnav_no_slide_random_hm3d_orig_res_default_physx_z_1.2/hm3d-depth/hierarchical/hm3d_v1/video_dir"
 VIDEO_RENDER_ALL_INFO: True
 TEST_EPISODE_COUNT: -1
 EVAL_CKPT_PATH_DIR: "/srv/kira-lab/share4/yali30/mopa_multion/mopa/data/pointnav_checkpoints/hm3d-depth/ckpt.60.pth"
 NUM_ENVIRONMENTS: 20
 SENSORS: ["RGB_SENSOR", "DEPTH_SENSOR", "SEMANTIC_SENSOR"]
-CHECKPOINT_FOLDER: "exp_reproduce/objnav_slide_stubborn/hm3d-depth/hierarchical/hm3d_v1/checkpoints"
-LOG_FILE: "exp_reproduce/objnav_slide_stubborn/hm3d-depth/hierarchical/hm3d_v1/eval_hm3d.log"
+CHECKPOINT_FOLDER: "exp_reproduce/objnav_no_slide_random_hm3d_orig_res_default_physx_z_1.2/hm3d-depth/hierarchical/hm3d_v1/checkpoints"
+LOG_FILE: "exp_reproduce/objnav_no_slide_random_hm3d_orig_res_default_physx_z_1.2/hm3d-depth/hierarchical/hm3d_v1/eval_hm3d.log"
 NUM_UPDATES: -1
 TOTAL_NUM_STEPS: 2.5e9
 LOG_INTERVAL: 10
@@ -49,7 +49,7 @@ RL:
     
   POLICY:
     name: "PointNavResNetPolicy"
-    EXPLORATION_STRATEGY: "stubborn"  # can be one of ["random", "stubborn"]
+    EXPLORATION_STRATEGY: "random"  # can be one of ["random", "stubborn"]
     EXPLORE_RADIUS: 50
     MAX_STEPS_BEFORE_GOAL_SELECTION: 50
     global_map_size: 250
@@ -57,6 +57,7 @@ RL:
     local_map_size: 15
     collision_threshold: 5
     has_rgb: True
+    pretrained_pointnav_depth_resolution: 256
 
   PPO:
     # ppo params
